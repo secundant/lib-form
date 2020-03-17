@@ -1,0 +1,46 @@
+{
+  "name": "universal-form",
+  "private": true,
+  "version": "0.0.1",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^25.1.2",
+    "@types/lodash": "^4.14.149",
+    "@types/node": "^13.7.1",
+    "@types/ramda": "types/npm-ramda#dist",
+    "graphql": "^14.6.0",
+    "husky": "^4.2.3",
+    "jest": "^25.1.0",
+    "lint-staged": "^10.0.7",
+    "prettier": "^1.19.1",
+    "ts-jest": "^25.2.0",
+    "tslib": "^1.10.0",
+    "tslint": "^6.0.0",
+    "tslint-config-airbnb": "^5.11.2",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-react": "^4.2.0",
+    "tslint-sonarts": "^1.9.0",
+    "typescript": "^3.7.5"
+  },
+  "scripts": {
+    "typewatch": "tsc --noEmit -p tsconfig.json --watch",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "tslint -c tslint.json -p tsconfig.json",
+    "test": "jest",
+    "preinstall": "node -e \"if(process.env.npm_execpath.indexOf('yarn') === -1) throw new Error('You must use Yarn to install, not NPM')\""
+  },
+  "engines": {
+    "node": ">10.0.0",
+    "yarn": ">1.20"
+  },
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "yarn typecheck"
+    }
+  }
+}

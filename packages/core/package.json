@@ -1,0 +1,12 @@
+{
+  "name": "@universal-form/core",
+  "version": "0.0.1",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "tslib": "^1.11.1"
+  }
+}

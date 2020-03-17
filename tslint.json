@@ -1,0 +1,26 @@
+{
+  "extends": ["tslint:recommended", "tslint-sonarts", "tslint-react", "tslint-config-prettier"],
+  "linterOptions": {
+    "exclude": ["**/*.js", "**/*.jsx", "**/node_modules/**/*"]
+  },
+  "rules": {
+    "array-type": false,
+    "arrow-parens": false,
+    "callable-types": false,
+    "curly": [true, "ignore-same-line"],
+    "interface-name": [true, "never-prefix"],
+    "interface-over-type-literal": false,
+    "jsx-boolean-value": false,
+    "member-access": [true, "no-public"],
+    "no-console": false,
+    "no-internal-module": false,
+    "no-trailing-whitespace": false,
+    "no-unused-expression": [true, "allow-fast-null-checks"],
+    "object-literal-sort-keys": false,
+    "ordered-imports": true,
+    "quotemark": [true, "single", "jsx-double"],
+    "strict-type-predicates": false,
+    "trailing-comma": false,
+    "variable-name": [true, "allow-leading-underscore", "allow-pascal-case"]
+  }
+}

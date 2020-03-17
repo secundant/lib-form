@@ -1,0 +1,11 @@
+{
+  "*.{ts,tsx}": [
+    "yarn lint --fix",
+    "prettier --parser typescript --write",
+    "git add"
+  ],
+  "*.{json,js,graphql}": [
+    "prettier --write",
+    "git add"
+  ]
+}

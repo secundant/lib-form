@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    "rootDir": ".",
+    "baseUrl": ".",
+    "typeRoots": ["./node_modules/@types"],
+    "lib": ["esnext", "dom"],
+    "types": ["node", "jest"],
+    "target": "esnext",
+    "module": "esnext",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": false,
+    "strict": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "importHelpers": true,
+    "noUnusedLocals": true,
+    "noImplicitReturns": true,
+    "noErrorTruncation": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@universal-form/*": ["./packages/*"],
+      "@universal-form-examples/*": ["./examples/*"]
+    },
+    "plugins": [
+      {
+        "name": "typescript-styled-plugin"
+      }
+    ]
+  },
+  "include": [
+    "./packages/**/*.ts",
+    "./packages/**/*.tsx",
+    "./examples/**/*.ts",
+    "./examples/**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
+}
