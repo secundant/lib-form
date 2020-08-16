@@ -1,0 +1,9 @@
+{
+  "name": "@lib-form/state-models",
+  "version": "1.0.0",
+  "dependencies": {
+    "@types/ramda": "types/npm-ramda#dist",
+    "ramda": "^0.27.1",
+    "rxjs": "^6.6.2"
+  }
+}

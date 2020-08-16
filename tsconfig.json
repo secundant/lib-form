@@ -25,20 +25,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "paths": {
-      "@universal-form/*": ["./packages/*"],
-      "@universal-form-examples/*": ["./examples/*"]
-    },
-    "plugins": [
-      {
-        "name": "typescript-styled-plugin"
-      }
-    ]
+      "@lib-form/*": ["./packages/*"]
+    }
   },
-  "include": [
-    "./packages/**/*.ts",
-    "./packages/**/*.tsx",
-    "./examples/**/*.ts",
-    "./examples/**/*.tsx"
-  ],
+  "include": ["./packages/**/*.ts", "./packages/**/*.tsx"],
   "exclude": ["node_modules"]
 }
