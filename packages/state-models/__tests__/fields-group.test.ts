@@ -165,8 +165,8 @@ describe('@lib-form/state-models : FieldsGroup', () => {
       path: 'child_1.foo',
       value: 3
     });
-    expect(root.group.getOptionalField('child2.child_2_bar')).toBe(child2.bar);
-    expect(root.group.getOptionalField('child_1.foo')).toBe(child1.foo);
+    expect(root.group.tryGetField('child2.child_2_bar')).toBe(child2.bar);
+    expect(root.group.tryGetField('child_1.foo')).toBe(child1.foo);
 
     root.group.batch(() => {
       root.group.update({
@@ -206,7 +206,7 @@ describe('@lib-form/state-models : FieldsGroup', () => {
     });
   });
 
-  test('Смена имени корректно эмитит события в batch-режиме', () => {
+  test('Should correctly emit updates on name change within batch', () => {
     const { group, foo, bar } = createGroup();
     const fooListener = jest.fn();
     const barListener = jest.fn();

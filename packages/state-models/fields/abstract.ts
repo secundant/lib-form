@@ -3,18 +3,25 @@ import { StateProxy } from '@lib-form/state-models/interfaces/state-proxy';
 import { DuplicateProxyError } from '@lib-form/state-models/errors/DuplicateProxyError';
 import { NotFoundProxyError } from '@lib-form/state-models/errors/NotFoundProxyError';
 import { getProxyStateOrNull, isHandledProxy } from '@lib-form/state-models/utils/state-proxy';
-import { equals } from 'ramda';
+import { NotFoundFieldError } from '@lib-form/state-models/errors/NotFoundFieldError';
+import { parseStringPath } from '@lib-form/state-models/utils/parseStringPath';
+import { geAbstractFieldChild } from '@lib-form/state-models/utils/geAbstractFieldChild';
 
-export class AbstractField<ComputedState extends {}> extends Observable<
+export abstract class AbstractField<ComputedState extends {}> extends Observable<
   FieldChangePayload<ComputedState>
 > {
   private subject$ = new Subject<FieldChangePayload<ComputedState>>();
-  private proxyToStatePart = new Map<StateProxy<any, any>, StateProxyData<any>>();
+  private stateByProxy = new Map<StateProxy<any, any>, any>();
+  private changedProxies = new Set<StateProxy<any, any>>();
   private currentState: ComputedState = {} as ComputedState;
   private prevState: ComputedState = {} as ComputedState;
-  private _batching = false;
+  /**
+   * Count of "model.batch(() => model.batch(() => model.batch(() => ...)))" calls
+   * We want emit events only after requested batches ends
+   */
+  private batchCount = 0;
 
-  constructor() {
+  protected constructor() {
     super(observer => this.subject$.subscribe(observer));
   }
 
@@ -23,19 +30,92 @@ export class AbstractField<ComputedState extends {}> extends Observable<
   }
 
   get batching(): boolean {
-    return this._batching;
+    return this.batchCount > 0;
   }
 
   set batching(batching: boolean) {
-    if (batching === this._batching) return;
-    this._batching = batching;
-    if (!batching) this.emitNext();
+    if (batching) {
+      this.batchCount++;
+    } else if (this.batchCount > 0) {
+      if (this.batchCount === 1) {
+        this.beforeBatchingEnd();
+      }
+      this.batchCount--;
+      if (this.batchCount === 0) {
+        this.emitNext();
+      }
+    }
+  }
+
+  protected abstract beforeBatchingEnd(): void;
+  protected abstract afterComputingState(prevState: ComputedState): void;
+
+  getField(path: string): AbstractField<any> {
+    const model = this.tryGetField(path);
+
+    if (!model) {
+      throw new NotFoundFieldError(path, (this.state as any).path);
+    }
+    return model;
+  }
+
+  tryGetField(path: string): AbstractField<any> | null {
+    return parseStringPath(path).reduce<AbstractField<any> | null>(geAbstractFieldChild, this);
   }
 
   batch(fn: () => any): void {
     this.batching = true;
     fn();
     this.batching = false;
+  }
+
+  /**
+   * @return {Boolean} - true if something updated
+   */
+  update(updates: Partial<ComputedState>, { emit = true }: FieldUpdateOptions = {}): boolean {
+    const proxiesToUpdate = Array.from(this.stateByProxy.keys()).filter(proxy =>
+      isHandledProxy(proxy, updates, this.currentState)
+    );
+
+    if (!proxiesToUpdate.length) {
+      return false;
+    }
+    proxiesToUpdate.forEach(proxy => {
+      proxy.handle(updates, this.currentState);
+      this.getStateFromProxy(proxy);
+    });
+    this.computeAndEmitNextState(emit);
+    return true;
+  }
+
+  addProxy(proxy: StateProxy<any, any>, { emit = true }: FieldStateProxyOptions = {}): void {
+    this.assertHaveNotProxy(proxy);
+    this.stateByProxy.set(proxy, getProxyStateOrNull(proxy, this.currentState));
+    this.changedProxies.add(proxy);
+    this.computeAndEmitNextState(emit);
+  }
+
+  removeProxy(proxy: StateProxy<any, any>, { emit = true }: FieldStateProxyOptions = {}): void {
+    this.assertHaveProxy(proxy);
+    this.stateByProxy.delete(proxy);
+    this.changedProxies.delete(proxy);
+    this.computeAndEmitNextState(emit);
+  }
+
+  getStateFromProxy(proxy: StateProxy<any, any>): void {
+    this.assertHaveProxy(proxy);
+    this.stateByProxy.set(proxy, getProxyStateOrNull(proxy, this.currentState));
+    this.changedProxies.add(proxy);
+  }
+
+  computeState(): void {
+    if (!this.changedProxies.size) return;
+    this.currentState = Array.from(this.stateByProxy.values()).reduce(
+      (currentState, proxyState) => Object.assign(currentState, proxyState),
+      {} as ComputedState
+    );
+    this.changedProxies.clear();
+    this.afterComputingState(this.prevState);
   }
 
   resetPrevState(): void {
@@ -53,63 +133,25 @@ export class AbstractField<ComputedState extends {}> extends Observable<
     });
   }
 
-  update(updates: Partial<ComputedState>, { emit = true }: FieldUpdateOptions = {}): boolean {
-    let updated = false;
-
-    for (const [proxy, data] of this.proxyToStatePart) {
-      if (!isHandledProxy(proxy, updates, this.currentState)) continue;
-      proxy.handle(updates, this.currentState);
-      data.changed = this.updateProxy(proxy) || data.changed;
-      updated = data.changed || updated;
-    }
-    if (updated) {
-      this.computeState();
-      emit && this.emitNext();
-    }
-    return updated;
-  }
-
-  addProxy(proxy: StateProxy<any, any>, { emit = true }: FieldStateProxyOptions = {}): void {
-    if (this.proxyToStatePart.has(proxy)) throw new DuplicateProxyError(proxy);
-    this.proxyToStatePart.set(proxy, {
-      changed: false,
-      prevState: null
-    });
-    this.updateProxy(proxy);
+  computeAndEmitNextState(emit?: boolean): void {
     this.computeState();
-    emit && this.emitNext();
+    if (emit) {
+      this.emitNext();
+    }
   }
 
-  removeProxy(proxy: StateProxy<any, any>, { emit = true }: FieldStateProxyOptions = {}): void {
-    if (!this.proxyToStatePart.has(proxy)) throw new DuplicateProxyError(proxy);
-    this.proxyToStatePart.set(proxy, {
-      prevState: null,
-      changed: true
-    });
-    this.computeState();
-    this.proxyToStatePart.delete(proxy);
-    emit && this.emitNext();
+  // Asserts
+
+  private assertHaveNotProxy(proxy: StateProxy<any, any>): void {
+    if (this.stateByProxy.has(proxy)) {
+      throw new DuplicateProxyError(proxy);
+    }
   }
 
-  updateProxy(proxy: StateProxy<any, any>): boolean {
-    if (!this.proxyToStatePart.has(proxy)) throw new NotFoundProxyError(proxy);
-    // eslint-disable-next-line
-    const data = this.proxyToStatePart.get(proxy)!;
-    const state = getProxyStateOrNull(proxy, this.currentState);
-
-    data.changed = data.changed || !equals(data.prevState, state);
-    data.prevState = state;
-    return data.changed;
-  }
-
-  computeState(): void {
-    const proxiesDataList = Array.from(this.proxyToStatePart.values());
-
-    if (!proxiesDataList.some(({ changed }) => changed)) return;
-    this.currentState = proxiesDataList.reduce(
-      (currentState, { prevState }) => Object.assign(currentState, prevState ?? {}),
-      {} as ComputedState
-    );
+  private assertHaveProxy(proxy: StateProxy<any, any>): void {
+    if (!this.stateByProxy.has(proxy)) {
+      throw new NotFoundProxyError(proxy);
+    }
   }
 }
 
@@ -124,9 +166,4 @@ export interface FieldUpdateOptions {
 export interface FieldChangePayload<ComputedState extends {}> {
   prevState: ComputedState;
   nextState: ComputedState;
-}
-
-interface StateProxyData<ProvidedState extends {}> {
-  changed: boolean;
-  prevState: ProvidedState | null;
 }

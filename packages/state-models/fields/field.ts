@@ -9,4 +9,12 @@ export class Field<Value> extends AbstractField<any> {
     });
     this.resetPrevState();
   }
+
+  protected beforeBatchingEnd(): void {
+    // ...
+  }
+
+  protected afterComputingState(): void {
+    // ...
+  }
 }
