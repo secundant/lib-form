@@ -12,9 +12,9 @@ Provides 2 features:
 ### Basics
 
 ```javascript
-const user = new FieldsGroup({
-  firstName: new Field('John'),
-  lastName: new Field('Smith')
+const user = createField({
+  firstName: 'John',
+  lastName: 'Smith'
 });
 
 function logUser({ firstName, lastName, age }) {
